@@ -8,6 +8,20 @@ export default function Hero({ onTrack }) {
     onTrack(tokenInput.trim() || "ECO-2025-089");
   };
 
+  const handleSmoothScroll = (e, targetId) => {
+    e.preventDefault();
+    const el = document.getElementById(targetId);
+    if (el) {
+      const headerOffset = 80;
+      const elementPosition = el.getBoundingClientRect().top;
+      const offsetPosition = elementPosition + window.scrollY - headerOffset;
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: "smooth",
+      });
+    }
+  };
+
   return (
     <section
       className="w-full bg-[#ffffff] px-6 lg:px-8 py-14 border-b border-[#e4dfd7]"
@@ -30,8 +44,9 @@ export default function Hero({ onTrack }) {
           </p>
           <div className="pt-2 flex flex-wrap items-center gap-4">
             <a
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-[#1f6e72] text-[#ffffff] text-sm font-bold shadow-sm hover:bg-[#155255] transition-colors"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-[#1f6e72] text-[#ffffff] text-sm font-bold shadow-sm hover:bg-[#155255] transition-colors cursor-pointer"
               href="#reportFormSection"
+              onClick={(e) => handleSmoothScroll(e, "reportFormSection")}
             >
               <span className="material-symbols-outlined text-[20px]">
                 add_alert
@@ -39,8 +54,9 @@ export default function Hero({ onTrack }) {
               Report Pollution Now
             </a>
             <a
-              className="inline-flex items-center gap-2 px-5 py-3 rounded-lg border border-[#e4dfd7] bg-[#f8f3ee] text-[#182230] hover:bg-[#ded9d4]/40 text-sm font-bold transition-colors"
+              className="inline-flex items-center gap-2 px-5 py-3 rounded-lg border border-[#e4dfd7] bg-[#f8f3ee] text-[#182230] hover:bg-[#ded9d4]/40 text-sm font-bold transition-colors cursor-pointer"
               href="#howItWorksSection"
+              onClick={(e) => handleSmoothScroll(e, "howItWorksSection")}
             >
               <span className="material-symbols-outlined text-[18px] text-[#1f6e72]">
                 play_circle

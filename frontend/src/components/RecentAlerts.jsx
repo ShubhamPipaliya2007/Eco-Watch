@@ -33,6 +33,7 @@ export default function RecentAlerts() {
       className="w-full px-6 lg:px-8 py-14 bg-surface border-t border-[#e4dfd7]"
       id="recentAlertsSection"
     >
+      <div id="waterQualityMapSection" aria-hidden="true" className="relative -top-20" />
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>

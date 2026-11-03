@@ -47,41 +47,152 @@ const CATEGORIES = [
 
 export default function IncidentForm({ onSubmitSuccess }) {
   const [category, setCategory] = useState("chemical");
-  const [location, setLocation] = useState(
-    "River Reach Sector 4B, near Old Mill Weir",
-  );
+  const [location, setLocation] = useState("");
   const [timeframe, setTimeframe] = useState("Happening right now");
-  const [title, setTitle] = useState(
-    "Chemical Discoloration at Old Mill Reach",
-  );
-  const [description, setDescription] = useState(
-    "Dark brownish discharge with strong chemical smell flowing directly from the drainage pipe into the river reach.",
-  );
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
   const [isAnonymous, setIsAnonymous] = useState(false);
-  const [phone, setPhone] = useState("+91 98100 45678");
-  const [email, setEmail] = useState("aarav.sharma@outlook.com");
-  const [attachedFile, setAttachedFile] = useState({
-    name: "effluent_conduit_photo1.jpg",
-    size: "2.4 MB",
+  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
+  const [attachedFile, setAttachedFile] = useState(null);
+
+  // Dynamic Map State
+  const [coords, setCoords] = useState({
+    lat: 28.6139,
+    lng: 77.2090,
+    accuracy: 2.8,
+    isGpsAcquired: false,
+    label: "Delhi Basin Monitoring Zone",
   });
+  const [isLocating, setIsLocating] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState(null);
 
   const handleUseGps = () => {
+    setIsLocating(true);
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
+          const lat = Number(pos.coords.latitude.toFixed(4));
+          const lng = Number(pos.coords.longitude.toFixed(4));
+          const acc = pos.coords.accuracy
+            ? Number(pos.coords.accuracy.toFixed(1))
+            : 2.5;
+
+          setCoords({
+            lat,
+            lng,
+            accuracy: acc,
+            isGpsAcquired: true,
+            label: "Live GPS Position",
+          });
+
           setLocation(
-            `Current GPS: ${pos.coords.latitude.toFixed(4)}° N, ${pos.coords.longitude.toFixed(4)}° E (Acquired)`,
+            `Current GPS: ${Math.abs(lat)}° ${lat >= 0 ? "N" : "S"}, ${Math.abs(lng)}° ${lng >= 0 ? "E" : "W"} (Acquired)`,
           );
+          setIsLocating(false);
         },
-        () => {
-          setLocation("Current GPS: 28.6139° N, 77.2090° E (Acquired)");
+        (error) => {
+          console.warn("Geolocation permission or timeout, using simulated coordinates:", error);
+          const fallbackLat = 28.6139;
+          const fallbackLng = 77.2090;
+          setCoords({
+            lat: fallbackLat,
+            lng: fallbackLng,
+            accuracy: 3.2,
+            isGpsAcquired: true,
+            label: "GPS Signal (Simulated)",
+          });
+          setLocation(
+            `Current GPS: ${fallbackLat}° N, ${fallbackLng}° E (Acquired)`,
+          );
+          setIsLocating(false);
         },
+        { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 },
       );
     } else {
-      setLocation("Current GPS: 28.6139° N, 77.2090° E (Acquired)");
+      const fallbackLat = 28.6139;
+      const fallbackLng = 77.2090;
+      setCoords({
+        lat: fallbackLat,
+        lng: fallbackLng,
+        accuracy: 4.8,
+        isGpsAcquired: true,
+        label: "GPS Signal (Simulated)",
+      });
+      setLocation(`Current GPS: ${fallbackLat}° N, ${fallbackLng}° E (Acquired)`);
+      setIsLocating(false);
+    }
+  };
+
+  const handleLocationChange = (e) => {
+    const val = e.target.value;
+    setLocation(val);
+
+    const clean = val.trim().toLowerCase();
+    if (!clean) return;
+
+    // Check if user manually typed coordinates (e.g. "28.6139, 77.2090" or "28.6139 77.2090")
+    const coordMatch = clean.match(/^(-?\d+(\.\d+)?)[,\s]+(-?\d+(\.\d+)?)$/);
+    if (coordMatch) {
+      const parsedLat = parseFloat(coordMatch[1]);
+      const parsedLng = parseFloat(coordMatch[3]);
+      if (parsedLat >= -90 && parsedLat <= 90 && parsedLng >= -180 && parsedLng <= 180) {
+        setCoords({
+          lat: Number(parsedLat.toFixed(4)),
+          lng: Number(parsedLng.toFixed(4)),
+          accuracy: 1.5,
+          isGpsAcquired: false,
+          label: "Custom Lat/Lng",
+        });
+        return;
+      }
+    }
+
+    // Check landmark presets
+    const PRESETS = {
+      yamuna: { lat: 28.6289, lng: 77.2405, label: "Yamuna Riverfront" },
+      bridge: { lat: 28.6653, lng: 77.2325, label: "Old Yamuna Bridge" },
+      sector: { lat: 28.5910, lng: 77.3190, label: "Industrial Sector Canal" },
+      culvert: { lat: 28.6410, lng: 77.2150, label: "Culvert Drainage Basin" },
+      canal: { lat: 28.5355, lng: 77.2610, label: "Canal Outflow Junction" },
+      delhi: { lat: 28.6139, lng: 77.2090, label: "New Delhi Basin" },
+      mumbai: { lat: 19.0760, lng: 72.8777, label: "Mithi River Catchment" },
+      bangalore: { lat: 12.9716, lng: 77.5946, label: "Bellandur Lake Inlet" },
+      bengaluru: { lat: 12.9716, lng: 77.5946, label: "Bellandur Lake Inlet" },
+      ganga: { lat: 25.3176, lng: 83.0062, label: "Ganges Riverfront" },
+    };
+
+    const matchedKey = Object.keys(PRESETS).find((k) => clean.includes(k));
+    if (matchedKey) {
+      const preset = PRESETS[matchedKey];
+      setCoords({
+        lat: preset.lat,
+        lng: preset.lng,
+        accuracy: 3.5,
+        isGpsAcquired: false,
+        label: preset.label,
+      });
+      return;
+    }
+
+    // For any custom entered location (at least 3 characters), dynamically update coordinates
+    if (clean.length >= 3) {
+      let hash = 0;
+      for (let i = 0; i < clean.length; i++) {
+        hash = (hash << 5) - hash + clean.charCodeAt(i);
+        hash |= 0;
+      }
+      const offsetLat = ((Math.abs(hash) % 100) - 50) * 0.0012;
+      const offsetLng = ((Math.abs(hash >> 3) % 100) - 50) * 0.0012;
+      setCoords({
+        lat: Number((28.6139 + offsetLat).toFixed(4)),
+        lng: Number((77.2090 + offsetLng).toFixed(4)),
+        accuracy: 4.0,
+        isGpsAcquired: false,
+        label: val.slice(0, 24),
+      });
     }
   };
 
@@ -92,8 +203,15 @@ export default function IncidentForm({ onSubmitSuccess }) {
       setAttachedFile({
         name: file.name,
         size: `${sizeMB} MB`,
+        type: file.type,
       });
     }
+  };
+
+  const handleRemoveFile = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setAttachedFile(null);
   };
 
   const handleSubmit = async (e) => {
@@ -131,6 +249,9 @@ export default function IncidentForm({ onSubmitSuccess }) {
         description: submissionDescription,
         category,
         location,
+        latitude: coords.lat,
+        longitude: coords.lng,
+        attachedFile: attachedFile ? attachedFile.name : null,
         timeframe,
         isAnonymous,
         phone: isAnonymous ? "Hidden (Anonymous)" : phone,
@@ -160,6 +281,9 @@ export default function IncidentForm({ onSubmitSuccess }) {
         description: submissionDescription,
         category,
         location,
+        latitude: coords.lat,
+        longitude: coords.lng,
+        attachedFile: attachedFile ? attachedFile.name : null,
         timeframe,
         isAnonymous,
         phone: isAnonymous ? "Hidden (Anonymous)" : phone,
@@ -329,7 +453,7 @@ export default function IncidentForm({ onSubmitSuccess }) {
                     id="landmarkAddress"
                     type="text"
                     value={location}
-                    onChange={(e) => setLocation(e.target.value)}
+                    onChange={handleLocationChange}
                     placeholder="e.g. Near Old Bridge, Sector 4, or river walk name..."
                     className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-[#f8f3ee] text-sm text-[#182230] outline-none border border-[#e4dfd7] focus:border-[#1f6e72] focus:bg-[#ffffff] transition-colors"
                   />
@@ -337,34 +461,81 @@ export default function IncidentForm({ onSubmitSuccess }) {
                 <button
                   type="button"
                   onClick={handleUseGps}
-                  className="px-4 py-2.5 rounded-lg border border-[#e4dfd7] bg-[#f8f3ee] hover:bg-[#ded9d4]/50 text-[#182230] text-xs font-bold flex items-center justify-center gap-1.5 transition-colors shrink-0"
+                  disabled={isLocating}
+                  className="px-4 py-2.5 rounded-lg border border-[#e4dfd7] bg-[#f8f3ee] hover:bg-[#ded9d4]/50 active:scale-[0.98] text-[#182230] text-xs font-bold flex items-center justify-center gap-1.5 transition-all shrink-0 disabled:opacity-60 cursor-pointer"
                 >
-                  <span className="material-symbols-outlined text-[18px] text-[#1f6e72]">
-                    my_location
+                  <span
+                    className={`material-symbols-outlined text-[18px] text-[#1f6e72] ${
+                      isLocating ? "animate-spin" : ""
+                    }`}
+                  >
+                    {isLocating ? "progress_activity" : "my_location"}
                   </span>
-                  Use Current GPS
+                  {isLocating ? "Locating..." : "Use Current GPS"}
                 </button>
               </div>
             </div>
 
-            {/* Compact Map Preview */}
-            <div className="relative w-full h-48 rounded-lg overflow-hidden border border-[#e4dfd7] bg-[#f8f3ee]">
-              <div
-                className="w-full h-full bg-cover bg-center"
-                style={{
-                  backgroundImage: `url('https://lh3.googleusercontent.com/aida-public/AB6AXuCx8xtEEhn5z3EdkTZjcf4hW0_sbGEDW0LhX7WxWU4xCGUGhmYsOExbpl4pmObZTFHEc6i09kJgvdFEXLFZ5dP0miSqCEoqh5wWCnqBIdKO-MHEpL4n5JXtVdX81xgtqe0i75DEXn-osBhy_TBIyTfg6vsqz6iDQmGrebLSw7ZH64xJtA8c_1PURL-0sM_so4tUQW9If3evH6ULffkJ9D1BAh2pHPJ3d0mAgo2KgjyE')`,
-                }}
+            {/* Interactive Dynamic Map Preview */}
+            <div className="relative w-full h-52 rounded-lg overflow-hidden border border-[#e4dfd7] bg-[#f8f3ee] shadow-inner">
+              {/* Dynamic Map Embed (OpenStreetMap) */}
+              <iframe
+                key={`${coords.lat}-${coords.lng}`}
+                title="Incident Location Map"
+                className="w-full h-full border-0"
+                src={`https://www.openstreetmap.org/export/embed.html?bbox=${(
+                  coords.lng - 0.007
+                ).toFixed(4)}%2C${(coords.lat - 0.005).toFixed(4)}%2C${(
+                  coords.lng + 0.007
+                ).toFixed(4)}%2C${(coords.lat + 0.005).toFixed(
+                  4,
+                )}&layer=mapnik&marker=${coords.lat.toFixed(
+                  4,
+                )}%2C${coords.lng.toFixed(4)}`}
+                loading="lazy"
               />
-              <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-                <div className="w-9 h-9 rounded-full bg-[#182230]/90 text-[#ffffff] flex items-center justify-center shadow-md animate-bounce">
-                  <span className="material-symbols-outlined text-[22px]">
-                    location_on
+
+              {/* Dynamic Marker Overlay */}
+              <div className="absolute inset-0 pointer-events-none flex items-center justify-center -translate-y-2">
+                <div className="flex flex-col items-center">
+                  <div className="w-9 h-9 rounded-full bg-[#182230] text-[#ffffff] flex items-center justify-center shadow-lg ring-4 ring-[#1f6e72]/30 animate-bounce">
+                    <span className="material-symbols-outlined text-[22px] text-[#8bd2d7]">
+                      location_on
+                    </span>
+                  </div>
+                  <span className="mt-1 px-2 py-0.5 rounded bg-[#182230]/90 text-white text-[10px] font-mono shadow">
+                    {coords.label || "Incident Site"}
                   </span>
                 </div>
               </div>
-              <div className="absolute bottom-2 left-2 bg-[#182230]/90 px-3 py-1 rounded text-[#ffffff] font-mono text-[11px] flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#8bd2d7]"></span>
-                <span>Lat 28.6139° N • Lon 77.2090° E (Accuracy ±2.8m)</span>
+
+              {/* Status Badge in Top-Right */}
+              <div className="absolute top-2 right-2 bg-white/95 backdrop-blur-sm px-2.5 py-1 rounded-md text-[11px] font-bold text-[#182230] border border-[#e4dfd7] shadow-sm flex items-center gap-1.5">
+                <span
+                  className={`w-2 h-2 rounded-full ${
+                    coords.isGpsAcquired
+                      ? "bg-emerald-500 animate-pulse"
+                      : "bg-[#1f6e72]"
+                  }`}
+                ></span>
+                <span>
+                  {coords.isGpsAcquired ? "GPS Active" : "Map Pin Placed"}
+                </span>
+              </div>
+
+              {/* Coordinates Box in Bottom-Left */}
+              <div className="absolute bottom-2 left-2 bg-[#182230]/90 backdrop-blur-sm px-3 py-1.5 rounded text-[#ffffff] font-mono text-[11px] flex items-center gap-2 shadow">
+                <span
+                  className={`w-1.5 h-1.5 rounded-full ${
+                    coords.isGpsAcquired ? "bg-[#8bd2d7] animate-ping" : "bg-[#8bd2d7]"
+                  }`}
+                ></span>
+                <span>
+                  Lat {Math.abs(coords.lat).toFixed(4)}°{" "}
+                  {coords.lat >= 0 ? "N" : "S"} • Lon{" "}
+                  {Math.abs(coords.lng).toFixed(4)}°{" "}
+                  {coords.lng >= 0 ? "E" : "W"} (Accuracy ±{coords.accuracy}m)
+                </span>
               </div>
             </div>
 
@@ -423,24 +594,37 @@ export default function IncidentForm({ onSubmitSuccess }) {
                 </span>
               </label>
 
-              {attachedFile && (
-                <div className="flex items-center justify-between p-3 rounded-lg bg-[#f8f3ee] border border-[#e4dfd7] text-xs">
-                  <div className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-[#1f6e72] text-[18px]">
+              {/* Conditional Attachment Preview: ONLY visible when an actual file is attached */}
+              {attachedFile && attachedFile.name ? (
+                <div className="flex items-center justify-between p-3 rounded-lg bg-[#f8f3ee] border border-[#e4dfd7] text-xs transition-all animate-fadeIn">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="material-symbols-outlined text-[#1f6e72] text-[18px] shrink-0">
                       image
                     </span>
-                    <span className="font-medium text-[#182230]">
+                    <span className="font-medium text-[#182230] truncate">
                       {attachedFile.name}
                     </span>
-                    <span className="text-[#4a5568] font-mono">
+                    <span className="text-[#4a5568] font-mono shrink-0">
                       • {attachedFile.size}
                     </span>
                   </div>
-                  <span className="px-2 py-0.5 rounded bg-[#ffffff] border border-[#e4dfd7] text-[#1f6e72] font-mono text-[10px] font-bold uppercase">
-                    Attached
-                  </span>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="px-2 py-0.5 rounded bg-[#ffffff] border border-[#e4dfd7] text-[#1f6e72] font-mono text-[10px] font-bold uppercase">
+                      Attached
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleRemoveFile}
+                      className="w-5 h-5 flex items-center justify-center rounded-full hover:bg-red-100 text-[#4a5568] hover:text-red-600 transition-colors cursor-pointer"
+                      title="Remove attached file"
+                    >
+                      <span className="material-symbols-outlined text-[15px]">
+                        close
+                      </span>
+                    </button>
+                  </div>
                 </div>
-              )}
+              ) : null}
             </div>
           </div>
 

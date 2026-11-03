@@ -6,6 +6,7 @@ export default function HowItWorks() {
       className="w-full px-6 lg:px-8 py-14 bg-[#ffffff] border-t border-[#e4dfd7]"
       id="howItWorksSection"
     >
+      <div id="guidelinesSection" aria-hidden="true" className="relative -top-20" />
       <div className="max-w-7xl mx-auto space-y-10">
         <div className="text-center max-w-2xl mx-auto">
           <span className="text-xs font-bold uppercase tracking-widest text-[#1f6e72]">
