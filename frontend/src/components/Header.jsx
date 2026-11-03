@@ -19,34 +19,6 @@ export default function Header({ onNavigate, activePage = "landing" }) {
     };
   }, []);
 
-  const scrollToHomeSection = (e, targetSectionId) => {
-    if (e) e.preventDefault();
-    const performScroll = () => {
-      const el = document.getElementById(targetSectionId);
-      if (el) {
-        const headerOffset = 80;
-        const elementPosition = el.getBoundingClientRect().top;
-        const offsetPosition = elementPosition + window.scrollY - headerOffset;
-        window.scrollTo({ top: offsetPosition, behavior: "smooth" });
-      }
-    };
-
-    if (activePage !== "landing" && onNavigate) {
-      onNavigate("landing");
-      setTimeout(performScroll, 150);
-    } else {
-      performScroll();
-    }
-  };
-
-  const handleCitizenNav = (e) => {
-    if (e) e.preventDefault();
-    if (onNavigate) {
-      onNavigate("citizen-dashboard");
-    }
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
   return (
     <header className="fixed top-0 w-full z-50 bg-[#ffffff]/95 backdrop-blur-md border-b border-[#e4dfd7]">
       <div className="h-20 max-w-7xl mx-auto px-6 lg:px-8 flex items-center justify-between">
@@ -72,66 +44,6 @@ export default function Header({ onNavigate, activePage = "landing" }) {
             </span>
           </div>
         </div>
-
-        {/* Center Navigation */}
-        <nav className="hidden lg:flex items-center gap-7">
-          <button
-            type="button"
-            onClick={() => {
-              if (onNavigate) onNavigate("landing");
-              window.scrollTo({ top: 0, behavior: "smooth" });
-            }}
-            className={`text-sm font-bold pb-1 transition-colors cursor-pointer ${
-              activePage === "landing"
-                ? "text-[#1f6e72] border-b-2 border-[#1f6e72]"
-                : "text-[#4a5568] hover:text-[#182230]"
-            }`}
-          >
-            Public Home
-          </button>
-
-          <button
-            type="button"
-            onClick={handleCitizenNav}
-            className={`text-sm font-bold pb-1 transition-colors cursor-pointer flex items-center gap-1.5 ${
-              activePage === "citizen-dashboard"
-                ? "text-[#1f6e72] border-b-2 border-[#1f6e72]"
-                : "text-[#4a5568] hover:text-[#182230]"
-            }`}
-          >
-            <span className="material-symbols-outlined text-[17px] text-[#1f6e72]">
-              assignment_add
-            </span>
-            Citizen Dashboard
-          </button>
-
-          {/* Core informational navigation links visible on Public Home */}
-          {activePage === "landing" && (
-            <>
-              <button
-                type="button"
-                onClick={(e) => scrollToHomeSection(e, "howItWorksSection")}
-                className="text-sm font-semibold text-[#4a5568] hover:text-[#182230] transition-colors cursor-pointer"
-              >
-                How It Works
-              </button>
-              <button
-                type="button"
-                onClick={(e) => scrollToHomeSection(e, "recentAlertsSection")}
-                className="text-sm font-semibold text-[#4a5568] hover:text-[#182230] transition-colors cursor-pointer"
-              >
-                Recent Alerts
-              </button>
-              <button
-                type="button"
-                onClick={(e) => scrollToHomeSection(e, "quickTrackSection")}
-                className="text-sm font-semibold text-[#4a5568] hover:text-[#182230] transition-colors cursor-pointer"
-              >
-                Track Report
-              </button>
-            </>
-          )}
-        </nav>
 
         {/* Right Actions: Authority Portal Access & Citizen Profile/Auth */}
         <div className="flex items-center gap-3 sm:gap-4">

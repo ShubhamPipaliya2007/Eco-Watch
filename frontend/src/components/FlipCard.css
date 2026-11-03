@@ -1,0 +1,28 @@
+/* ============================================
+   FlipCard – 3D card-flip animation styles
+   ============================================ */
+
+.flip-card-perspective {
+  perspective: 1200px;
+}
+
+.flip-card-inner {
+  position: relative;
+  width: 100%;
+  transform-style: preserve-3d;
+}
+
+.flip-card-face {
+  width: 100%;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.flip-card-face--front {
+  z-index: 2;
+}
+
+.flip-card-face--back {
+  z-index: 1;
+  transform: rotateY(180deg);
+}
