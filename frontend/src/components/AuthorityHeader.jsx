@@ -1,6 +1,20 @@
-import React from "react";
+import React, { useState, useRef, useEffect } from "react";
+import { useAuth } from "../context/AuthContext";
 
 export default function AuthorityHeader({ searchTerm, onSearchChange }) {
+  const { currentUser, logout, openAuthModal } = useAuth();
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
   return (
     <header className="fixed top-0 left-72 right-0 h-16 bg-white/95 backdrop-blur border-b border-sand-border z-40 px-8 flex items-center justify-between gap-6">
       <div className="flex items-center gap-4 flex-1 max-w-xl">
@@ -41,18 +55,69 @@ export default function AuthorityHeader({ searchTerm, onSearchChange }) {
 
         <div className="h-6 w-px bg-sand-border"></div>
 
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded bg-slate-850 text-white flex items-center justify-center font-bold text-xs">
-            EV
-          </div>
-          <div className="hidden xl:flex flex-col">
-            <span className="text-xs font-semibold text-slate-900 leading-tight">
-              Dr. Elena Vance
-            </span>
-            <span className="text-[11px] text-slate-500">
-              Chief Hydrological Officer
-            </span>
-          </div>
+        <div className="relative" ref={dropdownRef}>
+          {currentUser ? (
+            <div
+              className="flex items-center gap-3 cursor-pointer p-1 rounded-lg hover:bg-sand-200/60 transition-colors"
+              onClick={() => setDropdownOpen(!dropdownOpen)}
+            >
+              <div className="w-8 h-8 rounded bg-slate-850 text-white flex items-center justify-center font-bold text-xs uppercase">
+                {currentUser.fullName ? currentUser.fullName.charAt(0) : "U"}
+              </div>
+              <div className="hidden xl:flex flex-col text-left">
+                <span className="text-xs font-semibold text-slate-900 leading-tight">
+                  {currentUser.fullName}
+                </span>
+                <span className="text-[11px] text-teal-brand font-semibold">
+                  Signed In
+                </span>
+              </div>
+              <span className="material-symbols-outlined text-[16px] text-slate-400">
+                expand_more
+              </span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => openAuthModal("login")}
+                className="px-3 py-1.5 rounded text-xs font-bold text-slate-700 hover:text-slate-900 border border-sand-border bg-sand-100 hover:bg-sand-200 transition-colors"
+              >
+                Log In
+              </button>
+            </div>
+          )}
+
+          {currentUser && dropdownOpen && (
+            <div className="absolute right-0 mt-2 w-60 bg-white rounded-xl shadow-xl border border-sand-border p-3 z-50 text-slate-850 animate-fadeIn">
+              <div className="pb-3 border-b border-sand-border mb-2 px-1">
+                <p className="text-xs font-bold text-slate-900 truncate">
+                  {currentUser.fullName}
+                </p>
+                <p className="text-[11px] text-slate-500 font-mono truncate">
+                  {currentUser.email}
+                </p>
+                {currentUser.phone && (
+                  <p className="text-[10px] text-teal-brand font-mono mt-0.5">
+                    {currentUser.phone}
+                  </p>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setDropdownOpen(false);
+                  logout();
+                }}
+                className="w-full py-2 px-3 rounded-lg bg-red-50 hover:bg-red-100 border border-red-200 text-red-700 text-xs font-bold transition-colors flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-[16px]">
+                  logout
+                </span>
+                Sign Out
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </header>

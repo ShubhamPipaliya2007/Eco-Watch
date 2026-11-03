@@ -123,14 +123,25 @@ export default function AuthoritySidebar({ onNavigate, activeTab = 'overview', s
       </div>
 
       {/* Sidebar Bottom Footer */}
-      <div className="p-4 bg-slate-950/60 border-t border-slate-800 flex items-center justify-between text-xs">
-        <button
-          onClick={() => onNavigate && onNavigate('citizen')}
-          className="text-teal-subtle hover:text-white transition-colors flex items-center gap-1.5 font-medium cursor-pointer"
-        >
-          <span className="material-symbols-outlined text-[16px]">open_in_new</span>Citizen Portal
-        </button>
-        <span className="font-mono text-[11px] text-slate-500">EPA-SYS-v2</span>
+      <div className="p-4 bg-slate-950/60 border-t border-slate-800 flex flex-col gap-2 text-xs">
+        <div className="flex items-center justify-between">
+          <button
+            onClick={() => onNavigate && onNavigate('citizen-dashboard')}
+            className="text-teal-subtle hover:text-white transition-colors flex items-center gap-1.5 font-medium cursor-pointer"
+          >
+            <span className="material-symbols-outlined text-[16px]">dashboard</span>Citizen Dashboard
+          </button>
+          <button
+            onClick={() => onNavigate && onNavigate('landing')}
+            className="text-slate-400 hover:text-white transition-colors flex items-center gap-1 font-medium cursor-pointer"
+          >
+            <span className="material-symbols-outlined text-[15px]">home</span>Home
+          </button>
+        </div>
+        <div className="flex items-center justify-between text-[10px] text-slate-500 font-mono">
+          <span>EPA-DISPATCH-V2</span>
+          <span>AUTHORITY ONLY</span>
+        </div>
       </div>
     </aside>
   );

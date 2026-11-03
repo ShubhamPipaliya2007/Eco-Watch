@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useAuth } from "../context/AuthContext";
 
 const CATEGORIES = [
   {
@@ -46,15 +47,25 @@ const CATEGORIES = [
 ];
 
 export default function IncidentForm({ onSubmitSuccess }) {
+  const { currentUser, isAuthenticated, openAuthModal } = useAuth();
+
   const [category, setCategory] = useState("chemical");
   const [location, setLocation] = useState("");
   const [timeframe, setTimeframe] = useState("Happening right now");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [isAnonymous, setIsAnonymous] = useState(false);
-  const [phone, setPhone] = useState("");
-  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState(currentUser?.phone || "");
+  const [email, setEmail] = useState(currentUser?.email || "");
   const [attachedFile, setAttachedFile] = useState(null);
+
+  // Sync phone and email when logged-in user changes
+  useEffect(() => {
+    if (currentUser) {
+      if (currentUser.phone) setPhone(currentUser.phone);
+      if (currentUser.email) setEmail(currentUser.email);
+    }
+  }, [currentUser]);
 
   // Dynamic Map State
   const [coords, setCoords] = useState({
@@ -216,6 +227,16 @@ export default function IncidentForm({ onSubmitSuccess }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Guard Check: Require citizen to be signed in
+    if (!isAuthenticated || !currentUser) {
+      openAuthModal(
+        "login",
+        "Please sign in or create a citizen account to submit an official water incident report. Your account ensures emergency response tracking and verified credibility."
+      );
+      return;
+    }
+
     setLoading(true);
     setApiError(null);
 
@@ -223,6 +244,11 @@ export default function IncidentForm({ onSubmitSuccess }) {
       title.trim() ||
       `${CATEGORIES.find((c) => c.id === category)?.title || "Pollution"} - ${location}`;
     const submissionDescription = description.trim();
+
+    // Auto-attach logged-in user's verified details
+    const verifiedReporterName = currentUser.fullName;
+    const verifiedReporterPhone = currentUser.phone || phone;
+    const verifiedReporterEmail = currentUser.email || email;
 
     try {
       // Backend Integration: POST request to http://localhost:8000/api/analyze sending 'title' and 'description'
@@ -234,6 +260,10 @@ export default function IncidentForm({ onSubmitSuccess }) {
         body: JSON.stringify({
           title: submissionTitle,
           description: submissionDescription,
+          name: verifiedReporterName,
+          phone: verifiedReporterPhone,
+          email: verifiedReporterEmail,
+          userId: currentUser.id,
         }),
       });
 
@@ -254,8 +284,11 @@ export default function IncidentForm({ onSubmitSuccess }) {
         attachedFile: attachedFile ? attachedFile.name : null,
         timeframe,
         isAnonymous,
-        phone: isAnonymous ? "Hidden (Anonymous)" : phone,
-        email: isAnonymous ? "Hidden (Anonymous)" : email,
+        name: isAnonymous ? "Anonymous Citizen" : verifiedReporterName,
+        phone: isAnonymous ? "Hidden (Anonymous)" : verifiedReporterPhone,
+        email: isAnonymous ? "Hidden (Anonymous)" : verifiedReporterEmail,
+        verifiedUser: true,
+        reporterId: currentUser.id,
         backendAnalysis: backendData,
         submittedAt: new Date().toLocaleTimeString([], {
           hour: "2-digit",
@@ -286,11 +319,14 @@ export default function IncidentForm({ onSubmitSuccess }) {
         attachedFile: attachedFile ? attachedFile.name : null,
         timeframe,
         isAnonymous,
-        phone: isAnonymous ? "Hidden (Anonymous)" : phone,
-        email: isAnonymous ? "Hidden (Anonymous)" : email,
+        name: isAnonymous ? "Anonymous Citizen" : verifiedReporterName,
+        phone: isAnonymous ? "Hidden (Anonymous)" : verifiedReporterPhone,
+        email: isAnonymous ? "Hidden (Anonymous)" : verifiedReporterEmail,
+        verifiedUser: true,
+        reporterId: currentUser.id,
         backendAnalysis: {
           status: "success (simulated)",
-          message: `Received your complaint: ${submissionTitle}`,
+          message: `Received verified complaint from ${verifiedReporterName}: ${submissionTitle}`,
           severity: "Critical",
           rule_broken: "CPCB Air & Water Quality Norms - Section 4",
         },
@@ -695,7 +731,9 @@ export default function IncidentForm({ onSubmitSuccess }) {
                     Receive SMS / Email Progress Updates?
                   </span>
                   <p className="text-xs text-[#4a5568]">
-                    We'll send your live inspection tracking link here.
+                    {currentUser
+                      ? `Verified details from ${currentUser.fullName}'s account will be attached.`
+                      : "We'll send your live inspection tracking link here."}
                   </p>
                 </div>
                 <label className="flex items-center gap-2 cursor-pointer">
@@ -712,6 +750,22 @@ export default function IncidentForm({ onSubmitSuccess }) {
                   <div className="w-10 h-5 bg-[#ded9d4] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-[#ffffff] after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#1f6e72] relative"></div>
                 </label>
               </div>
+
+              {currentUser && !isAnonymous && (
+                <div className="p-2.5 rounded-lg bg-[#ffffff] border border-teal-brand/30 flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2 text-slate-850">
+                    <span className="material-symbols-outlined text-[#1f6e72] text-[18px]">
+                      verified
+                    </span>
+                    <span>
+                      Logged in as <strong>{currentUser.fullName}</strong> ({currentUser.email})
+                    </span>
+                  </div>
+                  <span className="px-2 py-0.5 rounded bg-teal-brand/10 text-[#1f6e72] text-[10px] font-bold uppercase tracking-wider">
+                    Verified Citizen
+                  </span>
+                </div>
+              )}
 
               <div
                 className={`grid grid-cols-1 sm:grid-cols-2 gap-3 transition-opacity duration-200 ${
@@ -733,7 +787,7 @@ export default function IncidentForm({ onSubmitSuccess }) {
                   disabled={isAnonymous}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Email address (optional)"
+                  placeholder="Email address"
                   className="w-full bg-[#ffffff] px-3.5 py-2 rounded-lg text-sm text-[#182230] outline-none border border-[#e4dfd7] focus:border-[#1f6e72]"
                 />
               </div>
@@ -767,8 +821,9 @@ export default function IncidentForm({ onSubmitSuccess }) {
                   verified_user
                 </span>
                 <span>
-                  Directly connected to EPA Rapid Response Correlator. No
-                  account required.
+                  {isAuthenticated
+                    ? "Verified account attached to submission payload for priority dispatch."
+                    : "Sign-in required to file official environmental response tickets."}
                 </span>
               </div>
             </div>

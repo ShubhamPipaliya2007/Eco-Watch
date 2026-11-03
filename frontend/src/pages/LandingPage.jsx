@@ -2,13 +2,12 @@ import React, { useState } from "react";
 import Header from "../components/Header";
 import SosBanner from "../components/SosBanner";
 import Hero from "../components/Hero";
-import IncidentForm from "../components/IncidentForm";
 import HowItWorks from "../components/HowItWorks";
 import RecentAlerts from "../components/RecentAlerts";
 import TrackingModal from "../components/TrackingModal";
 import Footer from "../components/Footer";
 
-export default function LandingPage({ onNavigate, onReportSubmitted }) {
+export default function LandingPage({ onNavigate }) {
   const [activeTrackingReport, setActiveTrackingReport] = useState(null);
 
   const handleTrackSearch = (token) => {
@@ -26,27 +25,30 @@ export default function LandingPage({ onNavigate, onReportSubmitted }) {
     });
   };
 
-  const handleFormSuccess = (newReport) => {
-    setActiveTrackingReport(newReport);
-    if (onReportSubmitted) {
-      onReportSubmitted(newReport);
-    }
-  };
-
   return (
     <div className="bg-surface font-sans text-on-surface antialiased min-h-screen flex flex-col">
-      <Header onNavigate={onNavigate} activePage="citizen" />
+      {/* Top Header Navigation Bar */}
+      <Header onNavigate={onNavigate} activePage="landing" />
 
-      <main className="w-full pt-20 flex-1">
+      {/* Main Public Home Content: Comprehensive Scrolling Informational Page */}
+      <main className="w-full pt-20 flex-1 flex flex-col justify-start">
+        {/* Prominent Red Emergency Hotline Banner at the Top of the Public Home Page */}
         <SosBanner />
-        <Hero onTrack={handleTrackSearch} />
-        <IncidentForm onSubmitSuccess={handleFormSuccess} />
+
+        {/* Hero Section with 3-Step Reporting Banner & Quick Tracker Card */}
+        <Hero onTrack={handleTrackSearch} onNavigate={onNavigate} />
+
+        {/* "What Happens After You Report?" Breakdown Section */}
         <HowItWorks />
+
+        {/* "Recent Water Alerts Handled" Cards Grid */}
         <RecentAlerts />
       </main>
 
+      {/* Complete Footer Section with Emergency Helplines and Statutory Links */}
       <Footer />
 
+      {/* Tracking Modal when a token is searched */}
       {activeTrackingReport && (
         <TrackingModal
           report={activeTrackingReport}
